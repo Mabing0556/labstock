@@ -28,6 +28,7 @@ width:100%;
 border:none;
 color:white;
 font-size:16px;
+cursor:pointer;
 }
 
 .result{
@@ -52,15 +53,6 @@ gap:10px;
 margin-bottom:20px;
 }
 
-#lotSelect{
-display:none;
-}
-
-#lotMessage{
-color:red;
-font-weight:bold;
-}
-
 table{
 width:100%;
 border-collapse:collapse;
@@ -70,7 +62,6 @@ margin-top:10px;
 th,td{
 border:1px solid #ddd;
 padding:8px;
-text-align:left;
 }
 
 th{
@@ -96,10 +87,6 @@ color:white;
 รับของเข้า
 </button>
 
-<button onclick="showTab('history')" style="background:#9b59b6">
-ประวัติการเบิก
-</button>
-
 <button onclick="showTab('summary')" style="background:#f39c12">
 สรุปคงเหลือ
 </button>
@@ -111,24 +98,15 @@ color:white;
 <div id="withdrawTab">
 
 <label>สินค้า</label>
-<input id="search" placeholder="พิมพ์ชื่อสินค้า">
+<input id="search">
 
 <div id="results"></div>
 
 <div class="box">
 
 <p>LOT: <span id="lot"></span></p>
-
-<select id="lotSelect"></select>
-
-<button onclick="showLotSelect()" style="background:#3498db">
-เลือก LOT อื่น
-</button>
-
 <p>หมดอายุ: <span id="expire"></span></p>
 <p>คงเหลือ: <span id="stock"></span></p>
-
-<p id="lotMessage"></p>
 
 </div>
 
@@ -170,36 +148,11 @@ color:white;
 
 </div>
 
-<!-- ประวัติ -->
-
-<div id="historyTab" style="display:none">
-
-<h3>ประวัติการเบิก</h3>
-
-<button onclick="loadHistory()" style="background:#9b59b6">
-โหลดประวัติ
-</button>
-
-<table id="historyTable">
-
-<tr>
-<th>สินค้า</th>
-<th>LOT</th>
-<th>จำนวน</th>
-<th>ผู้เบิก</th>
-<th>วันที่</th>
-<th>เวลา</th>
-</tr>
-
-</table>
-
-</div>
-
 <!-- SUMMARY -->
 
 <div id="summaryTab" style="display:none">
 
-<h3>สรุปยอดคงเหลือ</h3>
+<h3>สรุปคงเหลือ</h3>
 
 <table id="summaryTable">
 
@@ -220,22 +173,16 @@ const supabaseClient = supabase.createClient(
 )
 
 let currentLots=[]
-let selectedLotIndex=0
+let selectedLot=null
 
 function showTab(tab){
 
 document.getElementById("withdrawTab").style.display="none"
 document.getElementById("receiveTab").style.display="none"
-document.getElementById("historyTab").style.display="none"
 document.getElementById("summaryTab").style.display="none"
 
 if(tab=="withdraw") document.getElementById("withdrawTab").style.display="block"
 if(tab=="receive") document.getElementById("receiveTab").style.display="block"
-
-if(tab=="history"){
-document.getElementById("historyTab").style.display="block"
-loadHistory()
-}
 
 if(tab=="summary"){
 document.getElementById("summaryTab").style.display="block"
@@ -243,6 +190,13 @@ loadSummary()
 }
 
 }
+
+
+
+
+
+
+/* SEARCH WITHDRAW */
 
 document.getElementById("search").addEventListener("input",async function(){
 
@@ -270,6 +224,10 @@ document.getElementById("results").innerHTML=html
 
 })
 
+
+
+
+
 async function loadLots(name){
 
 document.getElementById("search").value=name
@@ -282,58 +240,37 @@ const {data}=await supabaseClient
 .order("expire",{ascending:true})
 
 currentLots=data
+selectedLot=data[0]
 
-let lotSelect=document.getElementById("lotSelect")
-lotSelect.innerHTML=""
-
-data.forEach((lot,i)=>{
-lotSelect.innerHTML+=`<option value="${i}">${lot.lot}</option>`
-})
-
-selectedLotIndex=0
 showLot()
 
 }
+
+
 
 function showLot(){
 
-let lot=currentLots[selectedLotIndex]
-
-document.getElementById("lot").innerText=lot.lot
-document.getElementById("expire").innerText=lot.expire
-document.getElementById("stock").innerText=lot.stock
+document.getElementById("lot").innerText=selectedLot.lot
+document.getElementById("expire").innerText=selectedLot.expire
+document.getElementById("stock").innerText=selectedLot.stock
 
 }
 
-function showLotSelect(){
 
-let lotSelect=document.getElementById("lotSelect")
-lotSelect.style.display="block"
 
-lotSelect.onchange=function(){
 
-selectedLotIndex=this.value
-showLot()
 
-}
-
-}
 
 async function withdraw(){
 
 let qty=parseInt(document.getElementById("qty").value)
 let user=document.getElementById("user").value
 
-if(!qty || qty<=0){
-alert("กรอกจำนวนให้ถูกต้อง")
-return
-}
+if(!qty){ alert("กรอกจำนวน"); return }
 
-let lot=currentLots[selectedLotIndex]
+let newStock = Number(selectedLot.stock) - qty
 
-let newStock = Number(lot.stock) - qty
-
-if(newStock < 0){
+if(newStock<0){
 alert("สต็อกไม่พอ")
 return
 }
@@ -341,26 +278,21 @@ return
 await supabaseClient
 .from("product")
 .update({stock:newStock})
-.eq("id",lot.id)
-
-let now=new Date()
-
-await supabaseClient
-.from("history")
-.insert({
-name:lot.name,
-lot:lot.lot,
-qty:qty,
-user:user,
-date:now.toISOString().split("T")[0],
-time:now.toLocaleTimeString()
-})
+.eq("id",selectedLot.id)
 
 alert("เบิกสำเร็จ")
 
 location.reload()
 
 }
+
+
+
+
+
+
+
+/* RECEIVE SEARCH */
 
 document.getElementById("r_name").addEventListener("input",async function(){
 
@@ -381,19 +313,23 @@ let names=[...new Set(data.map(x=>x.name))]
 let html=""
 
 names.forEach(name=>{
-html+=`<div class="result" onclick="selectReceiveName('${name}')">${name}</div>`
+html+=`<div class="result" onclick="selectReceive('${name}')">${name}</div>`
 })
 
 document.getElementById("r_results").innerHTML=html
 
 })
 
-function selectReceiveName(name){
+function selectReceive(name){
 
 document.getElementById("r_name").value=name
 document.getElementById("r_results").innerHTML=""
 
 }
+
+
+
+
 
 async function receiveStock(){
 
@@ -402,38 +338,21 @@ let lot=document.getElementById("r_lot").value
 let expire=document.getElementById("r_expire").value
 let qty=parseInt(document.getElementById("r_qty").value)
 
-if(!name || !lot || !expire || !qty){
+if(!name || !lot || !qty){
 alert("กรอกข้อมูลให้ครบ")
 return
 }
 
-const {data}=await supabaseClient
-.from("product")
-.select("*")
-.eq("name",name)
-.eq("lot",lot)
-
-if(data.length>0){
-
-let newStock = Number(data[0].stock) + qty
-
 await supabaseClient
 .from("product")
-.update({stock:newStock})
-.eq("id",data[0].id)
-
-}else{
-
-await supabaseClient
-.from("product")
-.insert({
+.insert([
+{
 name:name,
 lot:lot,
 expire:expire,
 stock:qty
-})
-
 }
+])
 
 alert("รับของสำเร็จ")
 
@@ -441,42 +360,10 @@ location.reload()
 
 }
 
-async function loadHistory(){
 
-const {data}=await supabaseClient
-.from("history")
-.select("*")
-.order("id",{ascending:false})
 
-let table=document.getElementById("historyTable")
 
-table.innerHTML=`
-<tr>
-<th>สินค้า</th>
-<th>LOT</th>
-<th>จำนวน</th>
-<th>ผู้เบิก</th>
-<th>วันที่</th>
-<th>เวลา</th>
-</tr>
-`
 
-data.forEach(item=>{
-
-table.innerHTML+=`
-<tr>
-<td>${item.name}</td>
-<td>${item.lot}</td>
-<td>${item.qty}</td>
-<td>${item.user}</td>
-<td>${item.date}</td>
-<td>${item.time}</td>
-</tr>
-`
-
-})
-
-}
 
 async function loadSummary(){
 
@@ -488,9 +375,7 @@ let summary={}
 
 data.forEach(item=>{
 
-if(!summary[item.name]){
-summary[item.name]=0
-}
+if(!summary[item.name]) summary[item.name]=0
 
 summary[item.name]+=Number(item.stock)
 
