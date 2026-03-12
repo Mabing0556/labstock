@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>LAB STOCK</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+body{
+font-family:Arial;
+max-width:700px;
+margin:auto;
+padding:20px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:5px 0;
+}
+
+button{
+padding:12px;
+width:100%;
+border:none;
+color:white;
+font-size:16px;
+}
+
+.result{
+border:1px solid #ccc;
+padding:8px;
+cursor:pointer;
+}
+
+.result:hover{
+background:#f1f1f1;
+}
+
+.box{
+border:1px solid #ddd;
+padding:10px;
+margin-top:10px;
+}
+
+.tab{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+#lotSelect{
+display:none;
+}
+
+#lotMessage{
+color:red;
+font-weight:bold;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:left;
+}
+
+th{
+background:#9b59b6;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>LAB STOCK</h2>
+
+<div class="tab">
+
+<button onclick="showTab('withdraw')" style="background:#2ecc71">
+เบิกของ
+</button>
+
+<button onclick="showTab('receive')" style="background:#3498db">
+รับของเข้า
+</button>
+
+<button onclick="showTab('history')" style="background:#9b59b6">
+ประวัติการเบิก
+</button>
+
+<button onclick="showTab('summary')" style="background:#f39c12">
+สรุปคงเหลือ
+</button>
+
+</div>
+
+<!-- เบิกของ -->
+
+<div id="withdrawTab">
+
+<label>สินค้า</label>
+<input id="search" placeholder="พิมพ์ชื่อสินค้า">
+
+<div id="results"></div>
+
+<div class="box">
+
+<p>LOT: <span id="lot"></span></p>
+
+<select id="lotSelect"></select>
+
+<button onclick="showLotSelect()" style="background:#3498db">
+เลือก LOT อื่น
+</button>
+
+<p>หมดอายุ: <span id="expire"></span></p>
+<p>คงเหลือ: <span id="stock"></span></p>
+
+<p id="lotMessage"></p>
+
+</div>
+
+<label>จำนวนที่เบิก</label>
+<input id="qty" type="number">
+
+<label>ชื่อผู้เบิก</label>
+<input id="user">
+
+<button onclick="withdraw()" style="background:#2ecc71">
+ยืนยันการเบิก
+</button>
+
+</div>
+
+<!-- รับของ -->
+
+<div id="receiveTab" style="display:none">
+
+<h3>รับของเข้า</h3>
+
+<label>ชื่อสินค้า</label>
+<input id="r_name">
+
+<div id="r_results"></div>
+
+<label>LOT</label>
+<input id="r_lot">
+
+<label>วันหมดอายุ</label>
+<input id="r_expire" type="date">
+
+<label>จำนวน</label>
+<input id="r_qty" type="number">
+
+<button onclick="receiveStock()" style="background:#3498db">
+บันทึกรับของ
+</button>
+
+</div>
+
+<!-- ประวัติ -->
+
+<div id="historyTab" style="display:none">
+
+<h3>ประวัติการเบิก</h3>
+
+<button onclick="loadHistory()" style="background:#9b59b6">
+โหลดประวัติ
+</button>
+
+<table id="historyTable">
+
+<tr>
+<th>สินค้า</th>
+<th>LOT</th>
+<th>จำนวน</th>
+<th>ผู้เบิก</th>
+<th>วันที่</th>
+<th>เวลา</th>
+</tr>
+
+</table>
+
+</div>
+
+<!-- SUMMARY -->
+
+<div id="summaryTab" style="display:none">
+
+<h3>สรุปยอดคงเหลือ</h3>
+
+<table id="summaryTable">
+
+<tr>
+<th>สินค้า</th>
+<th>คงเหลือ</th>
+</tr>
+
+</table>
+
+</div>
+
+<script>
+
+const supabaseClient = supabase.createClient(
+"https://nzvbdbwphvaxatkwuimy.supabase.co",
+"sb_publishable_fn0n0KVCq_WmmcmzkC9g1Q_DyVqFhvt"
+)
+
+let currentLots=[]
+let selectedLotIndex=0
+
+function showTab(tab){
+
+document.getElementById("withdrawTab").style.display="none"
+document.getElementById("receiveTab").style.display="none"
+document.getElementById("historyTab").style.display="none"
+document.getElementById("summaryTab").style.display="none"
+
+if(tab=="withdraw") document.getElementById("withdrawTab").style.display="block"
+if(tab=="receive") document.getElementById("receiveTab").style.display="block"
+if(tab=="history") document.getElementById("historyTab").style.display="block"
+
+if(tab=="summary"){
+document.getElementById("summaryTab").style.display="block"
+loadSummary()
+}
+
+}
+
+document.getElementById("search").addEventListener("input",async function(){
+
+let keyword=this.value
+
+if(keyword.length<1){
+document.getElementById("results").innerHTML=""
+return
+}
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.ilike("name","%"+keyword+"%")
+
+let names=[...new Set(data.map(x=>x.name))]
+
+let html=""
+
+names.forEach(name=>{
+html+=`<div class="result" onclick="loadLots('${name}')">${name}</div>`
+})
+
+document.getElementById("results").innerHTML=html
+
+})
+
+async function loadLots(name){
+
+document.getElementById("search").value=name
+document.getElementById("results").innerHTML=""
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.eq("name",name)
+.order("expire",{ascending:true})
+
+currentLots=data
+
+let lotSelect=document.getElementById("lotSelect")
+lotSelect.innerHTML=""
+
+data.forEach((lot,i)=>{
+lotSelect.innerHTML+=`<option value="${i}">${lot.lot}</option>`
+})
+
+selectedLotIndex=0
+showLot()
+
+if(data.length==1){
+document.getElementById("lotMessage").innerText="มีแค่ LOT เดียว"
+}else{
+document.getElementById("lotMessage").innerText="LOT นี้หมดอายุเร็วสุด ควรใช้ก่อน"
+}
+
+}
+
+function showLot(){
+
+let lot=currentLots[selectedLotIndex]
+
+document.getElementById("lot").innerText=lot.lot
+document.getElementById("expire").innerText=lot.expire
+document.getElementById("stock").innerText=lot.stock
+
+if(currentLots.length>1){
+
+if(selectedLotIndex==0){
+document.getElementById("lotMessage").innerText="LOT นี้หมดอายุเร็วสุด ควรใช้ก่อน"
+}else{
+document.getElementById("lotMessage").innerText="LOT นี้ไม่ใช่ตัวที่หมดอายุเร็วสุด ควรใช้ LOT แรกก่อน"
+}
+
+}
+
+}
+
+function showLotSelect(){
+
+let lotSelect=document.getElementById("lotSelect")
+lotSelect.style.display="block"
+
+lotSelect.onchange=function(){
+
+selectedLotIndex=this.value
+showLot()
+
+}
+
+}
+
+async function withdraw(){
+
+let qty=parseInt(document.getElementById("qty").value)
+let user=document.getElementById("user").value
+
+if(!qty || qty<=0){
+alert("กรอกจำนวนให้ถูกต้อง")
+return
+}
+
+let lot=currentLots[selectedLotIndex]
+
+let newStock = Number(lot.stock) - qty
+
+if(newStock < 0){
+alert("สต็อกไม่พอ")
+return
+}
+
+await supabaseClient
+.from("product")
+.update({stock:newStock})
+.eq("id",lot.id)
+
+alert("เบิกสำเร็จ")
+
+location.reload()
+
+}
+
+async function loadSummary(){
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+
+let summary={}
+
+data.forEach(item=>{
+
+if(!summary[item.name]){
+summary[item.name]=0
+}
+
+summary[item.name]+=Number(item.stock)
+
+})
+
+let table=document.getElementById("summaryTable")
+
+table.innerHTML=`
+<tr>
+<th>สินค้า</th>
+<th>คงเหลือ</th>
+</tr>
+`
+
+for(let name in summary){
+
+table.innerHTML+=`
+<tr>
+<td>${name}</td>
+<td>${summary[name]}</td>
+</tr>
+`
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
