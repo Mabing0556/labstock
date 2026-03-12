@@ -69,6 +69,14 @@ background:#9b59b6;
 color:white;
 }
 
+.message{
+font-weight:bold;
+margin-top:5px;
+}
+
+.good{color:green;}
+.warn{color:red;}
+
 </style>
 
 </head>
@@ -79,17 +87,10 @@ color:white;
 
 <div class="tab">
 
-<button onclick="showTab('withdraw')" style="background:#2ecc71">
-เบิกของ
-</button>
-
-<button onclick="showTab('receive')" style="background:#3498db">
-รับของเข้า
-</button>
-
-<button onclick="showTab('summary')" style="background:#f39c12">
-สรุปคงเหลือ
-</button>
+<button onclick="showTab('withdraw')" style="background:#2ecc71">เบิกของ</button>
+<button onclick="showTab('receive')" style="background:#3498db">รับของเข้า</button>
+<button onclick="showTab('history')" style="background:#9b59b6">ประวัติการเบิก</button>
+<button onclick="showTab('summary')" style="background:#f39c12">สรุปคงเหลือ</button>
 
 </div>
 
@@ -104,9 +105,13 @@ color:white;
 
 <div class="box">
 
-<p>LOT: <span id="lot"></span></p>
+<label>เลือก LOT</label>
+<select id="lotSelect" onchange="changeLot()"></select>
+
 <p>หมดอายุ: <span id="expire"></span></p>
 <p>คงเหลือ: <span id="stock"></span></p>
+
+<p id="lotMessage" class="message"></p>
 
 </div>
 
@@ -116,13 +121,11 @@ color:white;
 <label>ชื่อผู้เบิก</label>
 <input id="user">
 
-<button onclick="withdraw()" style="background:#2ecc71">
-ยืนยันการเบิก
-</button>
+<button onclick="withdraw()" style="background:#2ecc71">ยืนยันการเบิก</button>
 
 </div>
 
-<!-- รับของ -->
+<!-- RECEIVE -->
 
 <div id="receiveTab" style="display:none">
 
@@ -142,9 +145,26 @@ color:white;
 <label>จำนวน</label>
 <input id="r_qty" type="number">
 
-<button onclick="receiveStock()" style="background:#3498db">
-บันทึกรับของ
-</button>
+<button onclick="receiveStock()" style="background:#3498db">บันทึกรับของ</button>
+
+</div>
+
+<!-- HISTORY -->
+
+<div id="historyTab" style="display:none">
+
+<h3>ประวัติการเบิก</h3>
+
+<table id="historyTable">
+<tr>
+<th>สินค้า</th>
+<th>LOT</th>
+<th>จำนวน</th>
+<th>ผู้เบิก</th>
+<th>วันที่</th>
+<th>เวลา</th>
+</tr>
+</table>
 
 </div>
 
@@ -152,15 +172,13 @@ color:white;
 
 <div id="summaryTab" style="display:none">
 
-<h3>สรุปคงเหลือ</h3>
+<h3>สรุปยอดคงเหลือ</h3>
 
 <table id="summaryTable">
-
 <tr>
 <th>สินค้า</th>
 <th>คงเหลือ</th>
 </tr>
-
 </table>
 
 </div>
@@ -173,16 +191,22 @@ const supabaseClient = supabase.createClient(
 )
 
 let currentLots=[]
-let selectedLot=null
+let selectedLotIndex=0
 
 function showTab(tab){
 
 document.getElementById("withdrawTab").style.display="none"
 document.getElementById("receiveTab").style.display="none"
+document.getElementById("historyTab").style.display="none"
 document.getElementById("summaryTab").style.display="none"
 
 if(tab=="withdraw") document.getElementById("withdrawTab").style.display="block"
 if(tab=="receive") document.getElementById("receiveTab").style.display="block"
+
+if(tab=="history"){
+document.getElementById("historyTab").style.display="block"
+loadHistory()
+}
 
 if(tab=="summary"){
 document.getElementById("summaryTab").style.display="block"
@@ -191,12 +215,7 @@ loadSummary()
 
 }
 
-
-
-
-
-
-/* SEARCH WITHDRAW */
+/* SEARCH */
 
 document.getElementById("search").addEventListener("input",async function(){
 
@@ -224,10 +243,6 @@ document.getElementById("results").innerHTML=html
 
 })
 
-
-
-
-
 async function loadLots(name){
 
 document.getElementById("search").value=name
@@ -240,37 +255,66 @@ const {data}=await supabaseClient
 .order("expire",{ascending:true})
 
 currentLots=data
-selectedLot=data[0]
+selectedLotIndex=0
+
+let select=document.getElementById("lotSelect")
+select.innerHTML=""
+
+data.forEach((lot,i)=>{
+select.innerHTML+=`<option value="${i}">${lot.lot}</option>`
+})
 
 showLot()
 
 }
 
-
+function changeLot(){
+selectedLotIndex=document.getElementById("lotSelect").value
+showLot()
+}
 
 function showLot(){
 
-document.getElementById("lot").innerText=selectedLot.lot
-document.getElementById("expire").innerText=selectedLot.expire
-document.getElementById("stock").innerText=selectedLot.stock
+let lot=currentLots[selectedLotIndex]
+
+document.getElementById("expire").innerText=lot.expire
+document.getElementById("stock").innerText=lot.stock
+
+let msg=document.getElementById("lotMessage")
+
+if(currentLots.length==1){
+
+msg.innerText="รายการนี้มีเพียง Lot เดียว"
+msg.className="message good"
+
+}else{
+
+if(selectedLotIndex==0){
+
+msg.innerText="LOT นี้ใกล้ Expire แล้ว"
+msg.className="message good"
+
+}else{
+
+msg.innerText="LOT นี้ไม่ใช่ LOT ที่จะ Expire ใกล้ที่สุด"
+msg.className="message warn"
 
 }
 
+}
 
-
-
-
+}
 
 async function withdraw(){
 
 let qty=parseInt(document.getElementById("qty").value)
 let user=document.getElementById("user").value
 
-if(!qty){ alert("กรอกจำนวน"); return }
+let lot=currentLots[selectedLotIndex]
 
-let newStock = Number(selectedLot.stock) - qty
+let newStock = Number(lot.stock) - qty
 
-if(newStock<0){
+if(newStock < 0){
 alert("สต็อกไม่พอ")
 return
 }
@@ -278,7 +322,20 @@ return
 await supabaseClient
 .from("product")
 .update({stock:newStock})
-.eq("id",selectedLot.id)
+.eq("id",lot.id)
+
+let now=new Date()
+
+await supabaseClient
+.from("history")
+.insert({
+name:lot.name,
+lot:lot.lot,
+qty:qty,
+user:user,
+date:now.toISOString().split("T")[0],
+time:now.toLocaleTimeString()
+})
 
 alert("เบิกสำเร็จ")
 
@@ -286,84 +343,44 @@ location.reload()
 
 }
 
+/* HISTORY */
 
-
-
-
-
-
-/* RECEIVE SEARCH */
-
-document.getElementById("r_name").addEventListener("input",async function(){
-
-let keyword=this.value
-
-if(keyword.length<1){
-document.getElementById("r_results").innerHTML=""
-return
-}
+async function loadHistory(){
 
 const {data}=await supabaseClient
-.from("product")
+.from("history")
 .select("*")
-.ilike("name","%"+keyword+"%")
+.order("id",{ascending:false})
 
-let names=[...new Set(data.map(x=>x.name))]
+let table=document.getElementById("historyTable")
 
-let html=""
+table.innerHTML=`
+<tr>
+<th>สินค้า</th>
+<th>LOT</th>
+<th>จำนวน</th>
+<th>ผู้เบิก</th>
+<th>วันที่</th>
+<th>เวลา</th>
+</tr>
+`
 
-names.forEach(name=>{
-html+=`<div class="result" onclick="selectReceive('${name}')">${name}</div>`
+data.forEach(item=>{
+table.innerHTML+=`
+<tr>
+<td>${item.name}</td>
+<td>${item.lot}</td>
+<td>${item.qty}</td>
+<td>${item.user}</td>
+<td>${item.date}</td>
+<td>${item.time}</td>
+</tr>
+`
 })
 
-document.getElementById("r_results").innerHTML=html
-
-})
-
-function selectReceive(name){
-
-document.getElementById("r_name").value=name
-document.getElementById("r_results").innerHTML=""
-
 }
 
-
-
-
-
-async function receiveStock(){
-
-let name=document.getElementById("r_name").value
-let lot=document.getElementById("r_lot").value
-let expire=document.getElementById("r_expire").value
-let qty=parseInt(document.getElementById("r_qty").value)
-
-if(!name || !lot || !qty){
-alert("กรอกข้อมูลให้ครบ")
-return
-}
-
-await supabaseClient
-.from("product")
-.insert([
-{
-name:name,
-lot:lot,
-expire:expire,
-stock:qty
-}
-])
-
-alert("รับของสำเร็จ")
-
-location.reload()
-
-}
-
-
-
-
-
+/* SUMMARY */
 
 async function loadSummary(){
 
@@ -374,11 +391,8 @@ const {data}=await supabaseClient
 let summary={}
 
 data.forEach(item=>{
-
 if(!summary[item.name]) summary[item.name]=0
-
 summary[item.name]+=Number(item.stock)
-
 })
 
 let table=document.getElementById("summaryTable")
@@ -391,14 +405,12 @@ table.innerHTML=`
 `
 
 for(let name in summary){
-
 table.innerHTML+=`
 <tr>
 <td>${name}</td>
 <td>${summary[name]}</td>
 </tr>
 `
-
 }
 
 }
