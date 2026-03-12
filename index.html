@@ -342,7 +342,71 @@ alert("เบิกสำเร็จ")
 location.reload()
 
 }
+/* RECEIVE SEARCH */
 
+document.getElementById("r_name").addEventListener("input",async function(){
+
+let keyword=this.value
+
+if(keyword.length<1){
+document.getElementById("r_results").innerHTML=""
+return
+}
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.ilike("name","%"+keyword+"%")
+
+let names=[...new Set(data.map(x=>x.name))]
+
+let html=""
+
+names.forEach(name=>{
+html+=`<div class="result" onclick="selectReceive('${name}')">${name}</div>`
+})
+
+document.getElementById("r_results").innerHTML=html
+
+})
+
+function selectReceive(name){
+
+document.getElementById("r_name").value=name
+document.getElementById("r_results").innerHTML=""
+
+}
+
+/* RECEIVE STOCK */
+
+async function receiveStock(){
+
+let name=document.getElementById("r_name").value
+let lot=document.getElementById("r_lot").value
+let expire=document.getElementById("r_expire").value
+let qty=parseInt(document.getElementById("r_qty").value)
+
+if(!name || !lot || !qty){
+alert("กรอกข้อมูลให้ครบ")
+return
+}
+
+await supabaseClient
+.from("product")
+.insert([
+{
+name:name,
+lot:lot,
+expire:expire,
+stock:qty
+}
+])
+
+alert("รับของสำเร็จ")
+
+location.reload()
+
+}
 /* HISTORY */
 
 async function loadHistory(){
@@ -419,3 +483,4 @@ table.innerHTML+=`
 
 </body>
 </html>
+
