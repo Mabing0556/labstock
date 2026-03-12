@@ -231,7 +231,11 @@ document.getElementById("summaryTab").style.display="none"
 
 if(tab=="withdraw") document.getElementById("withdrawTab").style.display="block"
 if(tab=="receive") document.getElementById("receiveTab").style.display="block"
-if(tab=="history") document.getElementById("historyTab").style.display="block"
+
+if(tab=="history"){
+document.getElementById("historyTab").style.display="block"
+loadHistory()
+}
 
 if(tab=="summary"){
 document.getElementById("summaryTab").style.display="block"
@@ -289,12 +293,6 @@ lotSelect.innerHTML+=`<option value="${i}">${lot.lot}</option>`
 selectedLotIndex=0
 showLot()
 
-if(data.length==1){
-document.getElementById("lotMessage").innerText="มีแค่ LOT เดียว"
-}else{
-document.getElementById("lotMessage").innerText="LOT นี้หมดอายุเร็วสุด ควรใช้ก่อน"
-}
-
 }
 
 function showLot(){
@@ -304,16 +302,6 @@ let lot=currentLots[selectedLotIndex]
 document.getElementById("lot").innerText=lot.lot
 document.getElementById("expire").innerText=lot.expire
 document.getElementById("stock").innerText=lot.stock
-
-if(currentLots.length>1){
-
-if(selectedLotIndex==0){
-document.getElementById("lotMessage").innerText="LOT นี้หมดอายุเร็วสุด ควรใช้ก่อน"
-}else{
-document.getElementById("lotMessage").innerText="LOT นี้ไม่ใช่ตัวที่หมดอายุเร็วสุด ควรใช้ LOT แรกก่อน"
-}
-
-}
 
 }
 
@@ -355,9 +343,138 @@ await supabaseClient
 .update({stock:newStock})
 .eq("id",lot.id)
 
+let now=new Date()
+
+await supabaseClient
+.from("history")
+.insert({
+name:lot.name,
+lot:lot.lot,
+qty:qty,
+user:user,
+date:now.toISOString().split("T")[0],
+time:now.toLocaleTimeString()
+})
+
 alert("เบิกสำเร็จ")
 
 location.reload()
+
+}
+
+document.getElementById("r_name").addEventListener("input",async function(){
+
+let keyword=this.value
+
+if(keyword.length<1){
+document.getElementById("r_results").innerHTML=""
+return
+}
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.ilike("name","%"+keyword+"%")
+
+let names=[...new Set(data.map(x=>x.name))]
+
+let html=""
+
+names.forEach(name=>{
+html+=`<div class="result" onclick="selectReceiveName('${name}')">${name}</div>`
+})
+
+document.getElementById("r_results").innerHTML=html
+
+})
+
+function selectReceiveName(name){
+
+document.getElementById("r_name").value=name
+document.getElementById("r_results").innerHTML=""
+
+}
+
+async function receiveStock(){
+
+let name=document.getElementById("r_name").value
+let lot=document.getElementById("r_lot").value
+let expire=document.getElementById("r_expire").value
+let qty=parseInt(document.getElementById("r_qty").value)
+
+if(!name || !lot || !expire || !qty){
+alert("กรอกข้อมูลให้ครบ")
+return
+}
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.eq("name",name)
+.eq("lot",lot)
+
+if(data.length>0){
+
+let newStock = Number(data[0].stock) + qty
+
+await supabaseClient
+.from("product")
+.update({stock:newStock})
+.eq("id",data[0].id)
+
+}else{
+
+await supabaseClient
+.from("product")
+.insert({
+name:name,
+lot:lot,
+expire:expire,
+stock:qty
+})
+
+}
+
+alert("รับของสำเร็จ")
+
+location.reload()
+
+}
+
+async function loadHistory(){
+
+const {data}=await supabaseClient
+.from("history")
+.select("*")
+.order("id",{ascending:false})
+
+let table=document.getElementById("historyTable")
+
+table.innerHTML=`
+<tr>
+<th>สินค้า</th>
+<th>LOT</th>
+<th>จำนวน</th>
+<th>ผู้เบิก</th>
+<th>วันที่</th>
+<th>เวลา</th>
+</tr>
+`
+
+data.forEach(item=>{
+
+table.innerHTML+=`
+<tr>
+<td>${item.name}</td>
+<td>${item.lot}</td>
+<td>${item.qty}</td>
+<td>${item.user}</td>
+<td>${item.date}</td>
+<td>${item.time}</td>
+</tr>
+`
+
+})
 
 }
 
