@@ -10,75 +10,173 @@
 <style>
 
 body{
-font-family:Arial;
-max-width:700px;
+font-family:'Segoe UI',Tahoma,sans-serif;
+background:#f6f8fb;
+max-width:820px;
 margin:auto;
-padding:20px;
+padding:30px;
+color:#333;
 }
+
+/* TITLE */
+
+h2{
+margin-bottom:25px;
+font-weight:700;
+letter-spacing:1px;
+}
+
+/* CARD */
+
+#withdrawTab,
+#receiveTab,
+#historyTab,
+#summaryTab{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* INPUT */
 
 input,select{
 width:100%;
-padding:10px;
-margin:5px 0;
+padding:12px;
+margin:6px 0 14px 0;
+border:1px solid #ddd;
+border-radius:8px;
+font-size:15px;
+transition:0.2s;
 }
+
+input:focus,select:focus{
+border-color:#3498db;
+outline:none;
+box-shadow:0 0 0 2px rgba(52,152,219,0.15);
+}
+
+/* BUTTON */
 
 button{
 padding:12px;
 width:100%;
 border:none;
+border-radius:8px;
 color:white;
-font-size:16px;
+font-size:15px;
+font-weight:600;
 cursor:pointer;
+transition:0.2s;
 }
 
-.result{
-border:1px solid #ccc;
-padding:8px;
-cursor:pointer;
+button:hover{
+transform:translateY(-1px);
+box-shadow:0 4px 10px rgba(0,0,0,0.15);
 }
 
-.result:hover{
-background:#f1f1f1;
-}
-
-.box{
-border:1px solid #ddd;
-padding:10px;
-margin-top:10px;
-}
+/* TAB MENU */
 
 .tab{
 display:flex;
 gap:10px;
-margin-bottom:20px;
+margin-bottom:25px;
 }
+
+.tab button{
+flex:1;
+border-radius:8px;
+}
+
+/* SEARCH RESULT */
+
+.result{
+border:1px solid #eee;
+padding:10px;
+border-radius:6px;
+cursor:pointer;
+margin-bottom:4px;
+background:white;
+transition:0.15s;
+}
+
+.result:hover{
+background:#f1f6ff;
+border-color:#d6e4ff;
+}
+
+/* LOT BOX */
+
+.box{
+border:1px solid #eee;
+padding:14px;
+border-radius:8px;
+background:#fafafa;
+margin-bottom:15px;
+}
+
+/* MESSAGE */
+
+.message{
+font-weight:600;
+margin-top:8px;
+}
+
+.good{
+color:#27ae60;
+}
+
+.warn{
+color:#e74c3c;
+}
+
+/* TABLE */
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:10px;
+margin-top:15px;
+background:white;
+border-radius:10px;
+overflow:hidden;
 }
 
 th,td{
-border:1px solid #ddd;
-padding:8px;
+padding:12px 14px;
+text-align:left;
+border-bottom:1px solid #eee;
 }
 
 th{
-background:#9b59b6;
+background:linear-gradient(90deg,#6c5ce7,#7d6df0);
 color:white;
+font-weight:600;
+position:sticky;
+top:0;
+z-index:1;
 }
 
-.message{
-font-weight:bold;
-margin-top:5px;
+tr:hover{
+background:#f6f9ff;
 }
 
-.good{color:green;}
-.warn{color:red;}
+td:last-child{
+text-align:center;
+}
+
+tr:nth-child(even){
+background:#fafafa;
+}
+
+/* LABEL */
+
+label{
+font-weight:600;
+font-size:14px;
+color:#444;
+}
 
 </style>
-
 </head>
 
 <body>
@@ -87,10 +185,10 @@ margin-top:5px;
 
 <div class="tab">
 
-<button onclick="showTab('withdraw')" style="background:#2ecc71">เบิกของ</button>
-<button onclick="showTab('receive')" style="background:#3498db">รับของเข้า</button>
-<button onclick="showTab('history')" style="background:#9b59b6">ประวัติการเบิก</button>
-<button onclick="showTab('summary')" style="background:#f39c12">สรุปคงเหลือ</button>
+<button onclick="showTab('withdraw')" style="background:#2ecc71">📤 เบิกของ</button>
+<button onclick="showTab('receive')" style="background:#3498db">📥 รับของเข้า</button>
+<button onclick="showTab('history')" style="background:#9b59b6">📜 ประวัติการเบิก</button>
+<button onclick="showTab('summary')" style="background:#f39c12">📊 สรุปคงเหลือ</button>
 
 </div>
 
@@ -98,8 +196,8 @@ margin-top:5px;
 
 <div id="withdrawTab">
 
-<label>สินค้า</label>
-<input id="search">
+<label>รายการ</label>
+<input id="search" placeholder="🔎 พิมพ์ชื่อรายการ...">
 
 <div id="results"></div>
 
@@ -132,7 +230,7 @@ margin-top:5px;
 <h3>รับของเข้า</h3>
 
 <label>ชื่อสินค้า</label>
-<input id="r_name">
+<input id="r_name" placeholder="🔎 พิมพ์ชื่อรายการ...">
 
 <div id="r_results"></div>
 
@@ -145,6 +243,8 @@ margin-top:5px;
 <label>จำนวน</label>
 <input id="r_qty" type="number">
 
+<p id="receivePreview"></p>
+
 <button onclick="receiveStock()" style="background:#3498db">บันทึกรับของ</button>
 
 </div>
@@ -154,6 +254,25 @@ margin-top:5px;
 <div id="historyTab" style="display:none">
 
 <h3>ประวัติการเบิก</h3>
+
+<label>ค้นหา</label>
+<input id="historySearch" placeholder="ค้นหาชื่อรายการ / ผู้เบิก">
+
+<div id="historyResults"></div>
+
+<label>ช่วงเวลา</label>
+<select id="historyRange" onchange="loadHistory()">
+<option value="1">วันนี้</option>
+<option value="7" selected>7 วัน</option>
+<option value="30">30 วัน</option>
+<option value="365">ทั้งหมด</option>
+</select>
+
+<p id="historyTotal" style="
+margin-top:10px;
+font-weight:600;
+color:#2c3e50;
+"></p>
 
 <table id="historyTable">
 <tr>
@@ -173,6 +292,9 @@ margin-top:5px;
 <div id="summaryTab" style="display:none">
 
 <h3>สรุปยอดคงเหลือ</h3>
+
+<label>ค้นหารายการ</label>
+<input id="summarySearch" placeholder="พิมพ์ชื่อรายการ...">
 
 <table id="summaryTable">
 <tr>
@@ -228,7 +350,7 @@ return
 
 const {data}=await supabaseClient
 .from("product")
-.select("*")
+.select("name")
 .ilike("name","%"+keyword+"%")
 
 let names=[...new Set(data.map(x=>x.name))]
@@ -279,24 +401,25 @@ let lot=currentLots[selectedLotIndex]
 
 document.getElementById("expire").innerText=lot.expire
 document.getElementById("stock").innerText=lot.stock
+document.getElementById("qty").max = lot.stock
 
 let msg=document.getElementById("lotMessage")
 
 if(currentLots.length==1){
 
-msg.innerText="รายการนี้มีเพียง Lot เดียว"
+msg.innerText="✅รายการนี้มีเพียง Lot เดียว"
 msg.className="message good"
 
 }else{
 
 if(selectedLotIndex==0){
 
-msg.innerText="LOT นี้ใกล้ Expire แล้ว"
+msg.innerText="✅ระบบได้ทำการเลือก Lot ที่ใกล้วัน Expire ที่สุดมาให้แล้ว"
 msg.className="message good"
 
 }else{
 
-msg.innerText="LOT นี้ไม่ใช่ LOT ที่จะ Expire ใกล้ที่สุด"
+msg.innerText="⚠️LOT นี้ไม่ใช่ LOT ที่จะ Expire ใกล้ที่สุด"
 msg.className="message warn"
 
 }
@@ -377,8 +500,6 @@ document.getElementById("r_results").innerHTML=""
 
 }
 
-/* RECEIVE STOCK */
-
 async function receiveStock(){
 
 let name=document.getElementById("r_name").value
@@ -407,14 +528,45 @@ alert("รับของสำเร็จ")
 location.reload()
 
 }
+
+document.getElementById("r_qty").addEventListener("input",function(){
+
+let name=document.getElementById("r_name").value
+let lot=document.getElementById("r_lot").value
+let qty=this.value
+
+document.getElementById("receivePreview").innerText=
+"📦 จะเพิ่ม "+qty+" ชิ้น ใน "+name+" (LOT "+lot+")"
+
+})
+
 /* HISTORY */
 
 async function loadHistory(){
 
-const {data}=await supabaseClient
+let range = document.getElementById("historyRange").value
+
+let today = new Date()
+let past = new Date()
+
+past.setDate(today.getDate() - range)
+
+let startDate = past.toISOString().split("T")[0]
+
+let keyword = document.getElementById("historySearch").value
+
+let query = supabaseClient
 .from("history")
 .select("*")
-.order("id",{ascending:false})
+.gte("date",startDate)
+
+if(keyword){
+query = query.eq("name",keyword)
+}
+
+const {data} = await query.order("id",{ascending:false})
+
+let total = 0
 
 let table=document.getElementById("historyTable")
 
@@ -429,7 +581,36 @@ table.innerHTML=`
 </tr>
 `
 
+if(data.length==0){
+
+table.innerHTML=`
+<tr>
+<td colspan="6" style="padding:20px;">
+<div style="
+background:#ffeaea;
+border:2px solid #e74c3c;
+color:#c0392b;
+padding:14px;
+border-radius:8px;
+font-weight:500;
+text-align:center;
+">
+⚠️ รายการนี้ในช่วงเวลาที่เลือกยังไม่มีการเบิก
+</div>
+</td>
+</tr>
+`
+document.getElementById("historyTotal").innerText =
+"📊 รวมเบิกทั้งหมด 0 ชิ้น"
+
+return
+
+}
+
 data.forEach(item=>{
+
+total += Number(item.qty)
+
 table.innerHTML+=`
 <tr>
 <td>${item.name}</td>
@@ -440,7 +621,10 @@ table.innerHTML+=`
 <td>${item.time}</td>
 </tr>
 `
+
 })
+document.getElementById("historyTotal").innerText =
+"📊 รวมเบิกทั้งหมด " + total + " ชิ้น"
 
 }
 
@@ -452,9 +636,12 @@ const {data}=await supabaseClient
 .from("product")
 .select("*")
 
+let total = 0
+
 let summary={}
 
 data.forEach(item=>{
+total += Number(item.qty)
 if(!summary[item.name]) summary[item.name]=0
 summary[item.name]+=Number(item.stock)
 })
@@ -468,14 +655,102 @@ table.innerHTML=`
 </tr>
 `
 
-for(let name in summary){
+let names = Object.keys(summary).sort((a,b)=>
+a.toLowerCase().localeCompare(b.toLowerCase())
+)
+
+names.forEach(name=>{
+
+let stock = summary[name]
+let color = "#2ecc71"
+let label = "ปกติ"
+
+if(stock <= 5){
+color = "#e74c3c"
+label = "ใกล้หมด"
+}
+else if(stock <= 10){
+color = "#f39c12"
+label = "ต่ำ"
+}
+
 table.innerHTML+=`
 <tr>
 <td>${name}</td>
-<td>${summary[name]}</td>
+<td>
+<span style="
+background:${color};
+color:white;
+padding:6px 12px;
+border-radius:999px;
+font-size:13px;
+font-weight:600;
+display:inline-block;
+min-width:30px;
+text-align:center;
+">
+${stock}
+</span>
+</td>
 </tr>
 `
+})
+
 }
+
+document.getElementById("summarySearch").addEventListener("input",function(){
+
+let keyword = this.value.toLowerCase()
+
+let rows = document.querySelectorAll("#summaryTable tr")
+
+rows.forEach((row,index)=>{
+
+if(index==0) return
+
+let text = row.children[0].innerText.toLowerCase()
+
+if(text.includes(keyword)){
+row.style.display=""
+}else{
+row.style.display="none"
+}
+
+})
+
+})
+ document.getElementById("historySearch").addEventListener("input",async function(){
+
+let keyword=this.value
+
+if(keyword.length<1){
+document.getElementById("historyResults").innerHTML=""
+return
+}
+
+const {data}=await supabaseClient
+.from("product")
+.select("*")
+.ilike("name","%"+keyword+"%")
+
+let names=[...new Set(data.map(x=>x.name))]
+
+let html=""
+
+names.forEach(name=>{
+html+=`<div class="result" onclick="selectHistory('${name}')">${name}</div>`
+})
+
+document.getElementById("historyResults").innerHTML=html
+
+})
+
+function selectHistory(name){
+
+document.getElementById("historySearch").value = name
+document.getElementById("historyResults").innerHTML = ""
+
+loadHistory()
 
 }
 
