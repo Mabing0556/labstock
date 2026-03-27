@@ -11,19 +11,51 @@
 
 body{
 font-family:'Segoe UI',Tahoma,sans-serif;
-background:#f6f8fb;
-max-width:820px;
+background:linear-gradient(135deg,#eef3f9,#f8fbff);
+max-width:900px;
 margin:auto;
-padding:30px;
-color:#333;
+padding:20px;
+color:#2c3e50;
 }
 
 /* TITLE */
 
 h2{
-margin-bottom:25px;
+margin-bottom:20px;
 font-weight:700;
 letter-spacing:1px;
+color:#2c3e50;
+}
+
+/* TAB MENU */
+
+.tab{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-bottom:20px;
+}
+
+.tab button{
+flex:1;
+padding:10px;
+border-radius:10px;
+border:none;
+font-weight:600;
+cursor:pointer;
+transition:0.2s;
+background:#ecf0f1;
+color:#2c3e50;
+}
+
+.tab button:hover{
+background:#dfe6e9;
+}
+
+/* ACTIVE BUTTON (เพิ่มคลาสทีหลังได้) */
+.tab button.active{
+background:#3498db;
+color:white;
 }
 
 /* CARD */
@@ -31,11 +63,13 @@ letter-spacing:1px;
 #withdrawTab,
 #receiveTab,
 #historyTab,
-#summaryTab{
+#summaryTab,
+#reportTab{
 background:white;
-padding:25px;
-border-radius:12px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
+padding:20px;
+border-radius:14px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+margin-bottom:15px;
 }
 
 /* INPUT */
@@ -44,15 +78,17 @@ input,select{
 width:100%;
 padding:12px;
 margin:6px 0 14px 0;
-border:1px solid #ddd;
-border-radius:8px;
-font-size:15px;
+border:1px solid #dcdde1;
+border-radius:10px;
+font-size:14px;
 transition:0.2s;
+background:#fafafa;
 }
 
 input:focus,select:focus{
 border-color:#3498db;
 outline:none;
+background:white;
 box-shadow:0 0 0 2px rgba(52,152,219,0.15);
 }
 
@@ -62,9 +98,8 @@ button{
 padding:12px;
 width:100%;
 border:none;
-border-radius:8px;
-color:white;
-font-size:15px;
+border-radius:10px;
+font-size:14px;
 font-weight:600;
 cursor:pointer;
 transition:0.2s;
@@ -72,28 +107,36 @@ transition:0.2s;
 
 button:hover{
 transform:translateY(-1px);
-box-shadow:0 4px 10px rgba(0,0,0,0.15);
+box-shadow:0 6px 15px rgba(0,0,0,0.1);
 }
 
-/* TAB MENU */
-
-.tab{
-display:flex;
-gap:10px;
-margin-bottom:25px;
+/* ปุ่มหลัก */
+button.primary{
+background:#3498db;
+color:white;
 }
 
-.tab button{
-flex:1;
-border-radius:8px;
+button.success{
+background:#2ecc71;
+color:white;
 }
 
-/* SEARCH RESULT */
+button.warning{
+background:#f39c12;
+color:white;
+}
+
+button.secondary{
+background:#95a5a6;
+color:white;
+}
+
+/* RESULT SEARCH */
 
 .result{
 border:1px solid #eee;
 padding:10px;
-border-radius:6px;
+border-radius:8px;
 cursor:pointer;
 margin-bottom:4px;
 background:white;
@@ -102,16 +145,16 @@ transition:0.15s;
 
 .result:hover{
 background:#f1f6ff;
-border-color:#d6e4ff;
+border-color:#3498db;
 }
 
 /* LOT BOX */
 
 .box{
-border:1px solid #eee;
+border:1px solid #ecf0f1;
 padding:14px;
-border-radius:8px;
-background:#fafafa;
+border-radius:10px;
+background:#f9fbfd;
 margin-bottom:15px;
 }
 
@@ -120,6 +163,7 @@ margin-bottom:15px;
 .message{
 font-weight:600;
 margin-top:8px;
+font-size:14px;
 }
 
 .good{
@@ -139,29 +183,23 @@ margin-top:15px;
 background:white;
 border-radius:10px;
 overflow:hidden;
+font-size:14px;
 }
 
 th,td{
-padding:12px 14px;
+padding:10px 12px;
 text-align:left;
 border-bottom:1px solid #eee;
 }
 
 th{
-background:linear-gradient(90deg,#6c5ce7,#7d6df0);
+background:#3498db;
 color:white;
 font-weight:600;
-position:sticky;
-top:0;
-z-index:1;
 }
 
 tr:hover{
-background:#f6f9ff;
-}
-
-td:last-child{
-text-align:center;
+background:#f5f9ff;
 }
 
 tr:nth-child(even){
@@ -172,24 +210,60 @@ background:#fafafa;
 
 label{
 font-weight:600;
-font-size:14px;
-color:#444;
+font-size:13px;
+color:#34495e;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+
+body{
+padding:12px;
+}
+
+h2{
+font-size:20px;
+}
+
+.tab{
+flex-direction:column;
+}
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h2>LAB STOCK</h2>
+<h1 style="
+margin-bottom:10px;
+font-size:28px;
+font-weight:700;
+color:#2c3e50;
+border-bottom:3px solid #3498db;
+padding-bottom:5px;
+">
+ระบบคลังวัสดุห้องปฏิบัติการ โรงพยาบาพระปกเกล้า สาขาเมือง
+</h1>
+
+<div style="
+margin-bottom:20px;
+font-size:14px;
+color:#7f8c8d;
+">
+LAB STOCK
+</div>
 
 <div class="tab">
 
-<button onclick="showTab('withdraw')" style="background:#2ecc71">📤 เบิกของ</button>
-<button onclick="showTab('receive')" style="background:#3498db">📥 รับของเข้า</button>
-<button onclick="showTab('history')" style="background:#9b59b6">📜 ประวัติการเบิก</button>
-<button onclick="showTab('summary')" style="background:#f39c12">📊 สรุปคงเหลือ</button>
-<button onclick="showTab('report')" style="background:#16a085">📊 สรุปการเบิก</button>
+<button class="success" onclick="showTab('withdraw')">📤 เบิกของ</button>
+<button class="primary" onclick="showTab('receive')">📥 รับของเข้า</button>
+<button class="secondary" onclick="showTab('history')">📜 ประวัติการเบิก</button>
+<button class="warning" onclick="showTab('summary')">📊 คงเหลือ</button>
+<button class="primary" onclick="showTab('report')">📈สรุปยอดการเบิก</button>
 
 </div>
 
@@ -221,7 +295,7 @@ color:#444;
 <input id="user">
 
 <label>งาน</label>
-<select id="workType">
+<select id="workType" disabled>
   <option value="">-- เลือกงาน --</option>
   <option value="Hematology">Hematology</option>
   <option value="Microscopy">Microscopy</option>
@@ -229,7 +303,7 @@ color:#444;
   <option value="Other">Other</option>
 </select>
 
-<button onclick="withdraw()" style="background:#2ecc71">ยืนยันการเบิก</button>
+<button class="success" onclick="withdraw()">ยืนยันการเบิก</button>
 
 </div>
 
@@ -314,6 +388,15 @@ color:#2c3e50;
 
 <label>ค้นหารายการ</label>
 <input id="summarySearch" placeholder="พิมพ์ชื่อรายการ...">
+
+<label>เลือกงาน</label>
+<select id="summaryWork" onchange="loadSummary()">
+  <option value="">-- ทั้งหมด --</option>
+  <option value="Hematology">Hematology</option>
+  <option value="Microscopy">Microscopy</option>
+  <option value="Chemistry">Chemistry</option>
+  <option value="Other">Other</option>
+</select>
 
 <table id="summaryTable">
 <tr>
@@ -442,6 +525,9 @@ select.innerHTML+=`<option value="${i}">${lot.lot}</option>`
 
 showLot()
 
+let workType = data[0].work_type || ""
+document.getElementById("workType").value = workType
+
 }
 
 function changeLot(){
@@ -483,6 +569,8 @@ msg.className="message warn"
 }
 
 async function withdraw(){
+
+document.getElementById("workType").disabled = false
 
 let qty=parseInt(document.getElementById("qty").value)
 let user=document.getElementById("user").value
@@ -692,16 +780,21 @@ document.getElementById("historyTotal").innerText =
 
 async function loadSummary(){
 
-const {data}=await supabaseClient
+let work = document.getElementById("summaryWork").value
+
+let query = supabaseClient
 .from("product")
 .select("*")
 
-let total = 0
+if(work){
+query = query.eq("work_type", work)
+}
+
+const {data}=await query
 
 let summary={}
 
 data.forEach(item=>{
-total += Number(item.qty)
 if(!summary[item.name]) summary[item.name]=0
 summary[item.name]+=Number(item.stock)
 })
@@ -723,15 +816,12 @@ names.forEach(name=>{
 
 let stock = summary[name]
 let color = "#2ecc71"
-let label = "ปกติ"
 
 if(stock <= 5){
 color = "#e74c3c"
-label = "ใกล้หมด"
 }
 else if(stock <= 10){
 color = "#f39c12"
-label = "ต่ำ"
 }
 
 table.innerHTML+=`
