@@ -189,6 +189,7 @@ color:#444;
 <button onclick="showTab('receive')" style="background:#3498db">📥 รับของเข้า</button>
 <button onclick="showTab('history')" style="background:#9b59b6">📜 ประวัติการเบิก</button>
 <button onclick="showTab('summary')" style="background:#f39c12">📊 สรุปคงเหลือ</button>
+<button onclick="showTab('report')" style="background:#16a085">📊 สรุปการเบิก</button>
 
 </div>
 
@@ -219,6 +220,15 @@ color:#444;
 <label>ชื่อผู้เบิก</label>
 <input id="user">
 
+<label>งาน</label>
+<select id="workType">
+  <option value="">-- เลือกงาน --</option>
+  <option value="Hematology">Hematology</option>
+  <option value="Microscopy">Microscopy</option>
+  <option value="Chemistry">Chemistry</option>
+  <option value="Other">Other</option>
+</select>
+
 <button onclick="withdraw()" style="background:#2ecc71">ยืนยันการเบิก</button>
 
 </div>
@@ -242,6 +252,15 @@ color:#444;
 
 <label>จำนวน</label>
 <input id="r_qty" type="number">
+
+<label>งาน</label>
+<select id="r_workType">
+  <option value="">-- เลือกงาน --</option>
+  <option value="Hematology">Hematology</option>
+  <option value="Microscopy">Microscopy</option>
+  <option value="Chemistry">Chemistry</option>
+  <option value="Other">Other</option>
+</select>
 
 <p id="receivePreview"></p>
 
@@ -305,6 +324,35 @@ color:#2c3e50;
 
 </div>
 
+<div id="reportTab" style="display:none">
+
+<h3>สรุปการเบิกตามงาน</h3>
+
+<label>เลือกงาน</label>
+<select id="reportWork">
+  <option value="">-- ทั้งหมด --</option>
+  <option value="Hematology">Hematology</option>
+  <option value="Microscopy">Microscopy</option>
+  <option value="Chemistry">Chemistry</option>
+  <option value="Other">Other</option>
+</select>
+
+<label>ช่วงเวลา</label>
+<select id="reportRange" onchange="loadReport()">
+  <option value="7">7 วัน</option>
+  <option value="30" selected>30 วัน</option>
+  <option value="365">ทั้งหมด</option>
+</select>
+
+<table id="reportTable">
+<tr>
+<th>สินค้า</th>
+<th>จำนวนที่เบิก</th>
+</tr>
+</table>
+
+</div>
+
 <script>
 
 const supabaseClient = supabase.createClient(
@@ -321,6 +369,7 @@ document.getElementById("withdrawTab").style.display="none"
 document.getElementById("receiveTab").style.display="none"
 document.getElementById("historyTab").style.display="none"
 document.getElementById("summaryTab").style.display="none"
+document.getElementById("reportTab").style.display="none"
 
 if(tab=="withdraw") document.getElementById("withdrawTab").style.display="block"
 if(tab=="receive") document.getElementById("receiveTab").style.display="block"
@@ -333,6 +382,11 @@ loadHistory()
 if(tab=="summary"){
 document.getElementById("summaryTab").style.display="block"
 loadSummary()
+}
+
+if(tab=="report"){
+document.getElementById("reportTab").style.display="block"
+loadReport()
 }
 
 }
@@ -432,7 +486,7 @@ async function withdraw(){
 
 let qty=parseInt(document.getElementById("qty").value)
 let user=document.getElementById("user").value
-
+let workType=document.getElementById("workType").value
 let lot=currentLots[selectedLotIndex]
 
 let newStock = Number(lot.stock) - qty
@@ -456,6 +510,7 @@ name:lot.name,
 lot:lot.lot,
 qty:qty,
 user:user,
+work_type:workType,   // 👈 เพิ่มตรงนี้
 date:now.toISOString().split("T")[0],
 time:now.toLocaleTimeString()
 })
@@ -502,6 +557,8 @@ document.getElementById("r_results").innerHTML=""
 
 async function receiveStock(){
 
+let workType=document.getElementById("r_workType").value
+
 let name=document.getElementById("r_name").value
 let lot=document.getElementById("r_lot").value
 let expire=document.getElementById("r_expire").value
@@ -519,7 +576,8 @@ await supabaseClient
 name:name,
 lot:lot,
 expire:expire,
-stock:qty
+stock:qty,
+work_type:workType   
 }
 ])
 
@@ -575,6 +633,7 @@ table.innerHTML=`
 <th>สินค้า</th>
 <th>LOT</th>
 <th>จำนวน</th>
+<th>งาน</th>
 <th>ผู้เบิก</th>
 <th>วันที่</th>
 <th>เวลา</th>
@@ -616,6 +675,7 @@ table.innerHTML+=`
 <td>${item.name}</td>
 <td>${item.lot}</td>
 <td>${item.qty}</td>
+<td>${item.work_type || '-'}</td>
 <td>${item.user}</td>
 <td>${item.date}</td>
 <td>${item.time}</td>
@@ -745,6 +805,69 @@ document.getElementById("historyResults").innerHTML=html
 
 })
 
+async function loadReport(){
+
+let range = document.getElementById("reportRange").value
+let work = document.getElementById("reportWork").value
+
+let today = new Date()
+let past = new Date()
+
+past.setDate(today.getDate() - range)
+
+let startDate = past.toISOString().split("T")[0]
+
+let query = supabaseClient
+.from("history")
+.select("*")
+.gte("date",startDate)
+
+if(work){
+query = query.eq("work_type",work)
+}
+
+const {data} = await query
+
+let summary = {}
+
+data.forEach(item=>{
+if(!summary[item.name]) summary[item.name]=0
+summary[item.name]+=Number(item.qty)
+})
+
+let table=document.getElementById("reportTable")
+
+table.innerHTML=`
+<tr>
+<th>สินค้า</th>
+<th>จำนวนที่เบิก</th>
+</tr>
+`
+
+let names = Object.keys(summary)
+
+if(names.length==0){
+table.innerHTML+=`
+<tr>
+<td colspan="2" style="text-align:center;padding:20px;">
+ไม่มีข้อมูล
+</td>
+</tr>
+`
+return
+}
+
+names.forEach(name=>{
+table.innerHTML+=`
+<tr>
+<td>${name}</td>
+<td>${summary[name]}</td>
+</tr>
+`
+})
+
+}
+
 function selectHistory(name){
 
 document.getElementById("historySearch").value = name
@@ -758,4 +881,3 @@ loadHistory()
 
 </body>
 </html>
-
